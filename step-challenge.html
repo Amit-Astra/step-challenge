@@ -369,7 +369,7 @@ input:checked + .slider:before{transform:translateX(22px);}
   display:flex;
   background:var(--card);
   border-top:1px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom);
+  padding-bottom:max(env(safe-area-inset-bottom), 20px);
   z-index:20;
 }
 .tabbar button{
