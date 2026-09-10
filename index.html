@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2A3355">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Family Step Challenge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   FAMILY STEP CHALLENGE — visual design handoff
+   Design rationale
+   1. One decision per row. Every screen is a list of names with at
+      most two yes/no answers next to each. Nothing else competes.
+   2. The gold "Not yet" glow is the only attention-seeking element
+      in the app, so an auntie's eye lands on her own missing answer
+      without being told where to look.
+   3. Touch first: every toggle sits inside a 56x48 hit area with
+      16px between neighbours, so a mis-tap is physically hard.
+   4. Warm, not corporate. Pine + sage + gold reads as a family game;
+      coral (never pure red) keeps losing gentle.
+   5. Cheap-phone budget: two web fonts with system fallbacks, no
+      images, no shadows on scrolling rows, transitions under 200ms
+      and fully disabled under prefers-reduced-motion.
+   ============================================================ */
+
+:root{
+  /* --- colour: Indigo & Marigold --- */
+  --bg:#F0F1F6;
+  --card:#FFFFFF;
+  --pine:#2A3355;
+  --pine-light:#4B5782;
+  --gold:#C0871A;
+  --gold-bg:#FAF0DA;
+  --gold-glow:rgba(192,135,26,0.32);
+  --coral:#B04A3C;
+  --coral-bg:#FAE7E2;
+  --ink:#1C2033;
+  --muted:#666C84;
+  --line:#E2E4EE;
+  --grey-bg:#EEF0F6;
+  --track:#D2D6E3;
+  --on-dark:#FFFFFF;
+  --on-dark-soft:rgba(255,255,255,0.78);
+  --on-dark-fill:rgba(255,255,255,0.13);
+  --scrim:rgba(20,22,35,0.45);
+
+  /* --- radius --- */
+  --r-xs:8px;
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:16px;
+  --r-xl:20px;
+  --r-pill:999px;
+
+  /* --- spacing (4px base) --- */
+  --s-1:4px;
+  --s-2:8px;
+  --s-3:12px;
+  --s-4:16px;
+  --s-5:20px;
+  --s-6:24px;
+  --s-8:32px;
+
+  /* --- type --- */
+  --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body:'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --fs-xs:11px;
+  --fs-sm:12px;
+  --fs-md:14px;
+  --fs-base:16px;
+  --fs-lg:18px;
+  --fs-xl:22px;
+  --fs-2xl:28px;
+  --lh-tight:1.15;
+  --lh-body:1.45;
+
+  /* --- layout --- */
+  --app-max:480px;
+  --tap:48px;
+  --tabbar-h:60px;
+  --shadow-card:0 1px 2px rgba(31,61,43,0.05);
+  --shadow-lift:0 6px 20px rgba(31,61,43,0.14);
+  --dur:160ms;
+  --ease:cubic-bezier(0.2,0.7,0.3,1);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:var(--fs-base);
+  line-height:var(--lh-body);
+  -webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select{font-family:inherit;}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;}
+
+#app{
+  max-width:var(--app-max);
+  margin:0 auto;
+  min-height:100vh;
+  background:var(--bg);
+  padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s-4));
+  position:relative;
+}
+
+/* ---------------- top bar ---------------- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);
+  padding:var(--s-2) var(--s-4) var(--s-1);
+}
+.topbar h1{
+  font-size:var(--fs-lg);
+  color:var(--pine);
+  letter-spacing:-0.01em;
+}
+.topbar-actions{display:flex;gap:var(--s-1);}
+.icon-btn{
+  background:none;border:none;cursor:pointer;
+  width:var(--tap);height:var(--tap);border-radius:var(--r-sm);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--pine);padding:0;
+}
+.icon-btn:active{background:var(--line);}
+.icon-btn svg{width:22px;height:22px;}
+
+/* ---------------- week hero ---------------- */
+.week-hero{
+  margin:var(--s-1) var(--s-4) var(--s-4);
+  background:var(--pine);
+  color:var(--on-dark);
+  border-radius:var(--r-xl);
+  padding:var(--s-2) var(--s-3) var(--s-3);
+}
+.week-nav{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);
+}
+.week-nav button{
+  background:var(--on-dark-fill);
+  border:none;color:var(--on-dark);
+  width:var(--tap);height:var(--tap);
+  border-radius:var(--r-sm);
+  font-size:var(--fs-xl);line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background var(--dur) var(--ease);
+}
+.week-nav button:active{background:rgba(255,255,255,0.26);}
+.week-nav button:disabled{opacity:0.3;cursor:default;}
+.week-label{text-align:center;flex:1;min-width:0;}
+.week-label .num{font-family:var(--font-display);font-size:var(--fs-xl);line-height:var(--lh-tight);}
+.week-label .range{font-size:var(--fs-sm);color:var(--on-dark-soft);margin-top:2px;}
+
+.week-stats{display:flex;gap:var(--s-2);margin-top:var(--s-2);}
+.week-stat{
+  flex:1;background:var(--on-dark-fill);border-radius:var(--r-md);
+  padding:var(--s-2) var(--s-3);
+}
+.week-stat .lbl{font-size:var(--fs-xs);color:var(--on-dark-soft);text-transform:uppercase;letter-spacing:0.06em;font-weight:700;}
+.week-stat .val{font-family:var(--font-display);font-size:var(--fs-xl);line-height:1.2;margin-top:1px;}
+
+.deadline{
+  margin-top:var(--s-2);
+  background:var(--gold-bg);color:var(--ink);
+  border-radius:var(--r-md);
+  padding:var(--s-2) var(--s-3);
+  font-size:var(--fs-md);line-height:var(--lh-body);
+  display:flex;gap:var(--s-2);align-items:flex-start;
+  text-wrap:pretty;
+}
+.deadline b{color:var(--pine);}
+.deadline .d-icon{flex:none;font-size:var(--fs-base);line-height:1.3;}
+.deadline.quiet{background:var(--on-dark-fill);color:var(--on-dark);}
+.deadline.quiet b{color:var(--on-dark);}
+
+.settings-hint{
+  display:flex;align-items:center;gap:var(--s-2);
+  width:calc(100% - var(--s-8));
+  margin:var(--s-4) var(--s-4) 0;
+  min-height:var(--tap);
+  padding:var(--s-3);
+  background:none;border:1px dashed var(--line);border-radius:var(--r-md);
+  color:var(--muted);font-size:var(--fs-md);font-weight:700;
+  text-align:left;cursor:pointer;
+}
+.settings-hint:active{background:var(--grey-bg);}
+.week-hero .settings-hint{
+  width:100%;margin:var(--s-3) 0 0;
+  border-color:rgba(255,255,255,0.28);color:var(--on-dark-soft);
+}
+
+/* ---------------- sections ---------------- */
+.section{padding:0 var(--s-4);}
+.section-title{
+  font-size:var(--fs-sm);font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.08em;
+  margin:var(--s-2) var(--s-1) var(--s-2);
+}
+
+/* ---------------- player list ---------------- */
+.player-list{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+  box-shadow:var(--shadow-card);
+}
+.plist-head{
+  display:flex;align-items:flex-end;gap:var(--s-3);
+  padding:var(--s-2) var(--s-3) var(--s-2);
+  background:var(--grey-bg);
+  border-bottom:1px solid var(--line);
+}
+.plist-head .spacer{flex:1;min-width:0;}
+.col-label{
+  width:76px;flex:none;text-align:center;
+  font-size:var(--fs-xs);font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.03em;line-height:1.2;
+}
+.player-row{
+  display:flex;align-items:center;gap:var(--s-3);
+  padding:0 var(--s-3);min-height:52px;
+  border-bottom:1px solid var(--line);
+}
+.player-row:last-child{border-bottom:none;}
+.player-row.sitting .prow-name{color:var(--muted);}
+.prow-main{flex:1;min-width:0;}
+.prow-name{
+  font-family:var(--font-display);font-size:var(--fs-base);
+  font-weight:600;line-height:1.2;
+}
+.prow-sub{font-size:var(--fs-xs);color:var(--muted);font-weight:700;margin-top:1px;}
+
+.mini-toggles{display:flex;gap:var(--s-3);flex:none;}
+.mini-toggle{
+  width:76px;flex:none;position:relative;height:var(--tap);
+  display:flex;justify-content:center;
+}
+.mini-toggle-state{
+  position:absolute;left:0;right:0;bottom:1px;text-align:center;
+  font-size:var(--fs-xs);font-weight:800;color:var(--muted);
+  letter-spacing:0.01em;line-height:1;pointer-events:none;
+}
+.mini-toggle-state.yes{color:var(--pine-light);}
+.mini-toggle.attn .mini-toggle-state{color:var(--gold);}
+
+/* switch: 52x30 visual inside a 56x48 tap target */
+.switch{
+  position:relative;display:block;
+  width:56px;height:var(--tap);flex:none;cursor:pointer;
+}
+.switch input{position:absolute;opacity:0;width:0;height:0;}
+.slider{
+  position:absolute;left:2px;top:3px;
+  width:52px;height:30px;
+  background:var(--track);border-radius:var(--r-pill);
+  transition:background var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+}
+.slider:before{
+  content:"";position:absolute;
+  width:24px;height:24px;left:3px;top:3px;
+  background:#fff;border-radius:50%;
+  box-shadow:0 1px 3px rgba(0,0,0,0.28);
+  transition:transform var(--dur) var(--ease);
+}
+input:checked + .slider{background:var(--pine-light);}
+input:checked + .slider:before{transform:translateX(22px);}
+.switch.gold input:checked + .slider{background:var(--gold);}
+.switch input:focus-visible + .slider{outline:3px solid var(--pine);outline-offset:2px;}
+.switch.attn .slider{
+  background:var(--track);
+  box-shadow:0 0 0 3px var(--gold-glow);
+  animation:attnPulse 1.8s var(--ease) infinite;
+}
+@keyframes attnPulse{
+  0%,100%{box-shadow:0 0 0 3px var(--gold-glow);}
+  50%{box-shadow:0 0 0 7px rgba(198,138,31,0.14);}
+}
+.switch:has(input:disabled){cursor:default;}
+.switch:has(input:disabled) .slider{
+  background:transparent;
+  border:2px dashed var(--line);
+  box-shadow:none;animation:none;
+}
+.switch:has(input:disabled) .slider:before{
+  background:var(--line);box-shadow:none;
+}
+.switch:has(input:disabled:checked) .slider{
+  background:var(--grey-bg);border:2px solid var(--line);
+}
+.switch:has(input:disabled:checked) .slider:before{background:#fff;}
+
+/* ---------------- money / pills ---------------- */
+.money{font-family:var(--font-display);font-weight:600;font-size:var(--fs-base);}
+.money.pos{color:var(--gold);}
+.money.neg{color:var(--coral);}
+.money.zero{color:var(--muted);}
+.pill{
+  font-size:var(--fs-xs);font-weight:800;padding:2px var(--s-2);
+  border-radius:var(--r-pill);
+}
+.pill.win{background:var(--gold-bg);color:var(--gold);}
+.pill.loss{background:var(--coral-bg);color:var(--coral);}
+.pill.sit{background:var(--grey-bg);color:var(--muted);}
+
+/* ---------------- leaderboard ---------------- */
+.seg-control{
+  display:flex;gap:var(--s-1);
+  background:var(--grey-bg);padding:var(--s-1);
+  border-radius:var(--r-md);margin-bottom:var(--s-3);
+}
+.seg-control button{
+  flex:1;border:none;background:none;
+  min-height:40px;padding:0 var(--s-1);
+  border-radius:var(--r-sm);
+  font-size:var(--fs-sm);font-weight:800;color:var(--muted);
+  cursor:pointer;transition:background var(--dur) var(--ease);
+}
+.seg-control button.active{background:var(--card);color:var(--pine);box-shadow:var(--shadow-card);}
+.lb-row{
+  display:flex;align-items:center;gap:var(--s-3);
+  background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r-md);
+  padding:var(--s-3);margin-bottom:var(--s-2);
+  box-shadow:var(--shadow-card);
+}
+.lb-rank{
+  width:30px;height:30px;flex:none;border-radius:50%;
+  background:var(--grey-bg);color:var(--muted);
+  display:flex;align-items:center;justify-content:center;
+  font-size:var(--fs-md);font-weight:800;
+}
+.lb-rank.gold{background:var(--gold);color:#fff;}
+.lb-main{flex:1;min-width:0;}
+.lb-name{font-family:var(--font-display);font-weight:600;font-size:var(--fs-base);line-height:1.2;}
+.lb-sub{font-size:var(--fs-xs);color:var(--muted);font-weight:700;margin-top:2px;}
+
+/* ---------------- history ---------------- */
+.hist-card{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:var(--s-3) var(--s-4);
+  margin-bottom:var(--s-2);box-shadow:var(--shadow-card);
+}
+.hist-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-2);}
+.hist-week{font-family:var(--font-display);font-weight:600;font-size:var(--fs-base);}
+.hist-range{font-size:var(--fs-sm);color:var(--muted);font-weight:700;}
+.hist-winners{margin-top:var(--s-2);font-size:var(--fs-md);}
+.hist-winners b{color:var(--gold);font-weight:800;}
+.hist-losers{margin-top:2px;font-size:var(--fs-sm);color:var(--muted);}
+.hist-pot{margin-top:var(--s-2);font-size:var(--fs-sm);color:var(--muted);font-weight:700;}
+
+.empty-msg{
+  text-align:center;color:var(--muted);font-size:var(--fs-md);
+  padding:var(--s-8) var(--s-4);
+}
+
+/* ---------------- tab bar ---------------- */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;
+  max-width:var(--app-max);margin:0 auto;
+  display:flex;
+  background:var(--card);
+  border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+  z-index:20;
+}
+.tabbar button{
+  flex:1;background:none;border:none;cursor:pointer;
+  min-height:var(--tabbar-h);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  color:var(--muted);font-size:var(--fs-xs);font-weight:800;
+  padding:var(--s-2) var(--s-1);
+}
+.tabbar button.active{color:var(--pine);}
+.tabbar svg{width:22px;height:22px;}
+
+/* ---------------- settings ---------------- */
+.overlay{
+  position:fixed;inset:0;background:var(--scrim);
+  display:flex;align-items:flex-end;justify-content:center;z-index:50;
+}
+.overlay[hidden]{display:none;}
+.modal{
+  background:var(--bg);width:100%;max-width:var(--app-max);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
+  padding:var(--s-5) var(--s-4) calc(var(--s-8) + env(safe-area-inset-bottom));
+  max-height:88vh;overflow-y:auto;
+  box-shadow:var(--shadow-lift);
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;}
+.modal h2{font-size:var(--fs-xl);color:var(--pine);}
+.field{margin-top:var(--s-5);}
+.field > label{
+  display:block;
+  font-size:var(--fs-sm);font-weight:800;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.06em;
+}
+.field .helper{
+  font-size:var(--fs-sm);color:var(--muted);font-weight:500;
+  margin-top:var(--s-1);line-height:var(--lh-body);text-transform:none;letter-spacing:0;
+}
+.field input,.field select{
+  width:100%;margin-top:var(--s-2);
+  border:1.5px solid var(--line);border-radius:var(--r-sm);
+  padding:var(--s-3);
+  font-size:var(--fs-base); /* 16px keeps iOS from zooming */
+  min-height:var(--tap);
+  background:var(--card);color:var(--ink);
+}
+.field select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 22px,calc(100% - 13px) 22px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+.field-row{display:flex;gap:var(--s-2);}
+.player-edit-row{display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2);}
+.player-edit-row input{flex:1;margin-top:0;}
+.rm-btn{
+  flex:none;width:var(--tap);height:var(--tap);
+  background:var(--coral-bg);color:var(--coral);
+  border:none;border-radius:var(--r-sm);
+  font-size:var(--fs-lg);cursor:pointer;
+}
+.primary-btn,.secondary-btn,.add-player-btn{
+  width:100%;margin-top:var(--s-3);min-height:var(--tap);
+  border:none;border-radius:var(--r-sm);
+  font-size:var(--fs-base);font-weight:800;cursor:pointer;
+  padding:var(--s-3);
+}
+.primary-btn{background:var(--pine);color:#fff;}
+.add-player-btn{background:var(--pine-light);color:#fff;}
+.secondary-btn{background:var(--grey-bg);color:var(--pine);}
+.sync-status{
+  display:flex;align-items:center;gap:var(--s-2);
+  margin-top:var(--s-2);padding:var(--s-2) var(--s-3);
+  border-radius:var(--r-sm);background:var(--grey-bg);color:var(--muted);
+  font-size:var(--fs-sm);font-weight:700;
+}
+.sync-status.on{background:var(--gold-bg);color:var(--gold);}
+
+/* ---------------- screens ---------------- */
+.screen[hidden]{display:none;}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important;}
+}
+
+/* ============ app-only additions (not in design file) ============ */
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s-4));
+  transform:translateX(-50%);
+  background:var(--ink);color:#fff;
+  padding:var(--s-3) var(--s-4);border-radius:var(--r-md);
+  font-size:var(--fs-sm);font-weight:700;max-width:85%;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity var(--dur) ease;z-index:60;
+}
+.toast.show{opacity:0.96;}
+.hist-empty{font-size:var(--fs-sm);color:var(--muted);font-style:italic;margin-top:var(--s-2);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="loading">
+    <div class="spinner"></div>
+    <div>Loading the challenge…</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'challenge-data';
+  const DEFAULT_PLAYERS = ["Ragini","Nalini","Naintara","Amit","Tia","Shaurya","Rohan","Esha"];
+  const POLL_MS = 25000;
+
+  // ================= PUBLISH CONFIG =================
+  // Paste your Google Apps Script Web App URL between the quotes below
+  // BEFORE uploading this file to your host. Every family member who
+  // opens the link will then be connected to the Sheet automatically —
+  // no setup on their phones.
+  const BAKED_SYNC_URL = "https://script.google.com/macros/s/AKfycbyLXeYvi_ugkkIANMagXbD4ymkhx8lynrnUBdjoO_-MlEd9vz4mATwfv2dfj59XZya34w/exec";
+  // ==================================================
+
+  // Storage shim: inside Claude, window.storage is provided (shared across
+  // the family). On a normal web host it doesn't exist, so fall back to
+  // this phone's localStorage as a cache — the Google Sheet is then the
+  // shared source of truth.
+  if(!window.storage){
+    window.storage = {
+      async get(key){
+        const v = localStorage.getItem('fsc:' + key);
+        if(v === null) throw new Error('not found');
+        return { key, value: v };
+      },
+      async set(key, value){ localStorage.setItem('fsc:' + key, value); return { key, value }; },
+      async delete(key){ localStorage.removeItem('fsc:' + key); return { key, deleted:true }; },
+      async list(){ return { keys: Object.keys(localStorage).filter(k=>k.startsWith('fsc:')) }; }
+    };
+  }
+
+  function defaultState(){
+    return {
+      dataVersion: 4,
+      players: DEFAULT_PLAYERS.slice(),
+      config: { buyIn: 1000, anchor: "2026-09-01" },
+      syncUrl: "",
+      weeks: {
+        "1": {
+          "Ragini":  { playing:true, completed:false },
+          "Nalini":  { playing:true, completed:true },
+          "Naintara":{ playing:true, completed:true },
+          "Amit":    { playing:true, completed:true },
+          "Tia":     { playing:true, completed:true },
+          "Shaurya": { playing:true, completed:false },
+          "Rohan":   { playing:true, completed:true },
+          "Esha":    { playing:true, completed:true }
+        }
+      }
+    };
+  }
+
+  let state = null;
+  let currentTab = 'week';
+  let lbSort = 'money'; // 'money' | 'wins' | 'played'
+  let viewedWeek = null;
+  let saveTimer = null;
+  let pollTimer = null;
+  let lastPushAt = 0;
+
+  const app = document.getElementById('app');
+
+  function showToast(msg){
+    let t = document.getElementById('toast');
+    if(!t){
+      t = document.createElement('div');
+      t.id = 'toast'; t.className = 'toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=> t.classList.remove('show'), 2200);
+  }
+
+  // One-time fix for data saved by earlier versions of this app (which stored
+  // step counts). Converts old data into the simple playing/completed model.
+  function migrateIfNeeded(parsed){
+    if(parsed.dataVersion >= 4) return parsed;
+    const target = (parsed.config && parsed.config.target) || 10000;
+    Object.values(parsed.weeks || {}).forEach(week=>{
+      Object.values(week).forEach(entry=>{
+        if(entry.steps !== undefined){
+          entry.completed = (entry.steps === null || entry.steps === undefined) ? null : (Number(entry.steps) >= target);
+          delete entry.steps;
+          delete entry.submitted;
+        }
+        if(entry.completed === undefined) entry.completed = null;
+      });
+    });
+    if(parsed.config) delete parsed.config.target;
+    if(parsed.syncUrl === undefined) parsed.syncUrl = "";
+    parsed.dataVersion = 4;
+    return parsed;
+  }
+
+  async function loadState(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, true);
+      let parsed = JSON.parse(res.value);
+      if(!parsed.players || !parsed.config || !parsed.weeks) throw new Error('bad shape');
+      const before = JSON.stringify(parsed);
+      parsed = migrateIfNeeded(parsed);
+      if(JSON.stringify(parsed) !== before){
+        try{ await window.storage.set(STORAGE_KEY, JSON.stringify(parsed), true); }catch(e2){}
+      }
+      return parsed;
+    }catch(e){
+      const def = defaultState();
+      try{ await window.storage.set(STORAGE_KEY, JSON.stringify(def), true); }catch(e2){}
+      return def;
+    }
+  }
+
+  function queueSave(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async ()=>{
+      try{
+        await window.storage.set(STORAGE_KEY, JSON.stringify(state), true);
+      }catch(e){
+        showToast("Couldn't save — check your connection");
+      }
+    }, 350);
+  }
+
+  // ---------- Google Sheet sync ----------
+  function normalizeSyncUrl(url){
+    return (url||'').trim();
+  }
+
+  async function fetchRemoteWeeks(url){
+    const sep = url.includes('?') ? '&' : '?';
+    const res = await fetch(url + sep + 'action=get&_=' + Date.now());
+    if(!res.ok) throw new Error('bad status ' + res.status);
+    const data = await res.json();
+    if(!data || !Array.isArray(data.rows)) throw new Error('unexpected response shape');
+    const weeks = {};
+    data.rows.forEach(r=>{
+      const wk = String(r.week);
+      if(!weeks[wk]) weeks[wk] = {};
+      weeks[wk][r.player] = {
+        playing: (r.playing === true || r.playing === 'TRUE' || r.playing === 'true'),
+        completed: (r.completed === '' || r.completed === null || r.completed === undefined)
+          ? null
+          : (r.completed === true || r.completed === 'TRUE' || r.completed === 'true')
+      };
+    });
+    return weeks;
+  }
+
+  async function postRemoteUpdate(url, payload){
+    try{
+      await fetch(url, {
+        method:'POST',
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // avoids a CORS preflight against Apps Script
+        body: JSON.stringify(payload)
+      });
+    }catch(e){
+      showToast("Saved here, but couldn't reach the Google Sheet");
+    }
+  }
+
+  async function syncFromSheet(announce){
+    if(!state.syncUrl) return;
+    try{
+      const remoteWeeks = await fetchRemoteWeeks(state.syncUrl);
+
+      // First connect to an empty Sheet: seed it from this phone
+      // instead of wiping the local data.
+      if(Object.keys(remoteWeeks).length === 0 && Object.keys(state.weeks).length > 0){
+        await seedSheet();
+        if(announce) showToast('🔗 Connected — copied this phone\'s data into the Sheet');
+        return;
+      }
+
+      // If a toggle was pushed moments ago, this poll may predate it —
+      // skip applying it so we don't undo the tap.
+      if(Date.now() - lastPushAt < 6000 && !announce) return;
+
+      // Any player named in the Sheet but missing here gets added,
+      // so adding a family member in the Sheet propagates to phones.
+      const remotePlayers = new Set();
+      Object.values(remoteWeeks).forEach(wk=> Object.keys(wk).forEach(p=> remotePlayers.add(p)));
+      let playersChanged = false;
+      remotePlayers.forEach(p=>{ if(!state.players.includes(p)){ state.players.push(p); playersChanged = true; } });
+
+      const changed = JSON.stringify(remoteWeeks) !== JSON.stringify(state.weeks);
+      if(changed || playersChanged){
+        state.weeks = remoteWeeks;
+        queueSave();
+        if(currentTab) renderTab();
+      }
+      if(announce) showToast('🔗 Synced with your Google Sheet');
+    }catch(e){
+      if(announce) showToast("Couldn't connect — check the link in Settings");
+    }
+  }
+
+  async function seedSheet(){
+    const entries = [];
+    Object.keys(state.weeks).forEach(wk=>{
+      Object.keys(state.weeks[wk]).forEach(player=>{
+        const e = state.weeks[wk][player];
+        entries.push({ week:Number(wk), player, playing:!!e.playing, completed:(e.completed===undefined?null:e.completed) });
+      });
+    });
+    if(entries.length) await postRemoteUpdate(state.syncUrl, { entries });
+  }
+
+  function pushEntryToSheet(weekNum, player){
+    if(!state.syncUrl) return;
+    lastPushAt = Date.now();
+    const entry = getWeekEntries(weekNum)[player];
+    postRemoteUpdate(state.syncUrl, {
+      week: Number(weekNum),
+      player: player,
+      playing: !!entry.playing,
+      completed: entry.completed
+    });
+  }
+
+  function startPolling(){
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(()=>{ if(state.syncUrl) syncFromSheet(false); }, POLL_MS);
+  }
+
+  // ---------- date / week helpers ----------
+  function anchorDate(){ return new Date(state.config.anchor + "T00:00:00"); }
+  function msPerDay(){ return 24*60*60*1000; }
+  function getCurrentWeekNumber(){
+    const today = new Date();
+    const diffDays = Math.floor((today - anchorDate())/msPerDay());
+    return Math.max(1, Math.floor(diffDays/7) + 1);
+  }
+  function weekRange(weekNum){
+    const start = new Date(anchorDate().getTime() + (weekNum-1)*7*msPerDay());
+    const end = new Date(start.getTime() + 6*msPerDay());
+    const fmt = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+    return `${fmt(start)} – ${fmt(end)}, ${end.getFullYear()}`;
+  }
+  function isEntryWindowOpen(){
+    const day = new Date().getDay(); // Sun=0, Mon=1, Tue=2, ...
+    return day === 1 || day === 2;
+  }
+
+  function getWeekEntries(weekNum){
+    const key = String(weekNum);
+    if(!state.weeks[key]) state.weeks[key] = {};
+    const wk = state.weeks[key];
+    state.players.forEach(p=>{
+      if(!wk[p]) wk[p] = { playing:false, completed:null };
+    });
+    return wk;
+  }
+
+  function computeWeekResults(weekNum){
+    const entries = getWeekEntries(weekNum);
+    const buyIn = state.config.buyIn;
+    const playing = state.players.filter(p=>entries[p].playing);
+    const pending = playing.filter(p=> entries[p].completed===null || entries[p].completed===undefined);
+    const submitted = playing.filter(p=>!pending.includes(p));
+    const winners = submitted.filter(p=> entries[p].completed===true);
+    const losers = submitted.filter(p=> entries[p].completed===false);
+    const pot = playing.length * buyIn;
+    const losersPool = losers.length * buyIn;
+    const results = {};
+    state.players.forEach(p=>{
+      if(!entries[p].playing){
+        results[p] = { status:'sit', paid:0, won:0, net:0 };
+      } else if(pending.includes(p)){
+        results[p] = { status:'pending', paid:buyIn, won:0, net:0 };
+      } else if(winners.includes(p)){
+        const share = winners.length>0 ? losersPool/winners.length : 0;
+        results[p] = { status:'win', paid:buyIn, won:buyIn+share, net:share };
+      } else {
+        results[p] = { status:'loss', paid:buyIn, won:0, net:-buyIn };
+      }
+    });
+    return { entries, results, pot, playingCount:playing.length, winners, losers, pending };
+  }
+
+  function settingsLinkHtml(){
+    return `<button class="settings-hint settings-link" style="margin-left:0;margin-right:0;width:100%;"><span aria-hidden="true">⚙️</span><span>Need to change something? Open Settings.</span></button>`;
+  }
+
+  function money(n){
+    const r = Math.round(n*100)/100;
+    const sign = r < 0 ? '-' : '';
+    return sign + '₹' + Math.abs(r).toLocaleString('en-IN', {maximumFractionDigits:0});
+  }
+
+  function computeStreak(player){
+    const weekNums = Object.keys(state.weeks).map(Number).sort((a,b)=>b-a);
+    const realCurrent = getCurrentWeekNumber();
+    let streak = 0;
+    for(const wk of weekNums){
+      const status = computeWeekResults(wk).results[player].status;
+      // The current week isn't decided yet — whether they're sitting out,
+      // haven't marked a result, or anything else — so it should never
+      // break an existing streak. Only finished weeks count.
+      if(wk === realCurrent && status !== 'win') continue;
+      if(status==='pending') continue;
+      if(status==='win') streak++;
+      else break;
+    }
+    return streak;
+  }
+
+  function streakChip(streak, size){
+    if(streak<=0) return '';
+    const flames = '🔥'.repeat(Math.min(3, streak));
+    let label = `${streak} week streak`;
+    if(streak>=6) label = `${streak} weeks — unstoppable`;
+    else if(streak>=3) label = `${streak} weeks — on fire`;
+    const cls = size==='small' ? 'streak-chip small' : 'streak-chip';
+    return `<span class="${cls}" onclick="this.classList.add('pop');setTimeout(()=>this.classList.remove('pop'),450)">
+      <span class="flames">${flames}</span><span>${label}</span>
+    </span>`;
+  }
+
+  // ---------- rendering ----------
+  function render(){
+    if(viewedWeek === null) viewedWeek = getCurrentWeekNumber();
+    app.innerHTML = `
+      <div class="topbar">
+        <h1>Family Step Challenge</h1>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="refreshBtn" aria-label="Refresh">${refreshIcon()}</button>
+          <button class="icon-btn" id="settingsBtn" aria-label="Settings">${gearIcon()}</button>
+        </div>
+      </div>
+      <div id="tabContent"></div>
+      <div class="tabbar">
+        ${tabBtn('week','This Week',weekIcon())}
+        ${tabBtn('leaderboard','Leaderboard',trophyIcon())}
+        ${tabBtn('history','History',historyIcon())}
+      </div>
+    `;
+    document.getElementById('settingsBtn').onclick = openSettings;
+    document.getElementById('refreshBtn').onclick = async ()=>{
+      if(!state.syncUrl){ showToast('Add your Google Sheet link in Settings first'); return; }
+      showToast('Checking the Sheet…');
+      await syncFromSheet(true);
+    };
+    document.querySelectorAll('.tabbar button').forEach(b=>{
+      b.onclick = ()=>{ currentTab = b.dataset.tab; render(); };
+    });
+    renderTab();
+  }
+
+  function tabBtn(id,label,icon){
+    return `<button data-tab="${id}" class="${currentTab===id?'active':''}">${icon}${label}</button>`;
+  }
+
+  function renderTab(){
+    const el = document.getElementById('tabContent');
+    if(!el) return;
+    if(currentTab==='week') el.innerHTML = renderWeekTab();
+    else if(currentTab==='leaderboard') el.innerHTML = renderLeaderboardTab();
+    else el.innerHTML = renderHistoryTab();
+    attachTabHandlers();
+  }
+
+  function renderWeekTab(){
+    const realCurrent = getCurrentWeekNumber();
+    const { results, pot, winners, pending, playingCount } = computeWeekResults(viewedWeek);
+    const isCurrent = viewedWeek === realCurrent;
+    const windowOpen = isEntryWindowOpen();
+    const canToggle = isCurrent;
+    const canMarkResult = isCurrent && windowOpen;
+
+    let cards = state.players.map(p=>{
+      const e = getWeekEntries(viewedWeek)[p];
+      const r = results[p];
+      return playerCard(p, e, r, canToggle, canMarkResult, isCurrent);
+    }).join('');
+
+    if(state.players.length===0){
+      cards = `<div class="empty-msg">No players yet. Add family members in ⚙️ Settings.</div>`;
+    }
+
+    let banner = '';
+    if(isCurrent && windowOpen){
+      const stillToMark = state.players.filter(p=>{
+        const e = getWeekEntries(viewedWeek)[p];
+        return e.playing && (e.completed===null || e.completed===undefined);
+      });
+      if(stillToMark.length>0){
+        const shown = stillToMark.slice(0,2).map(n=>`<b>${escapeHtml(n)}</b>`);
+        const extra = stillToMark.length - shown.length;
+        const who = extra>0 ? `${shown.join(', ')} +${extra} more` : shown.join(' and ');
+        banner = `<div class="deadline"><span class="d-icon" aria-hidden="true">⏰</span><span>${who} still need${stillToMark.length===1 ? 's':''} to mark their result.</span></div>`;
+      } else {
+        banner = `<div class="deadline quiet"><span class="d-icon" aria-hidden="true">✅</span><span>Everyone playing has marked their result. Nice!</span></div>`;
+      }
+    } else if(isCurrent && !windowOpen){
+      banner = `<div class="deadline quiet"><span class="d-icon" aria-hidden="true">🕒</span><span>Join or sit out any day — marking the result opens on Monday.</span></div>`;
+    } else if(!isCurrent){
+      banner = `<div class="deadline quiet"><span class="d-icon" aria-hidden="true">🔒</span><span>This week is finished, so the toggles are locked.</span></div>`;
+    }
+
+    return `
+      <div class="week-hero">
+        <div class="week-nav">
+          <button id="prevWeek">‹</button>
+          <div class="week-label">
+            <div class="num">Week ${viewedWeek}</div>
+            <div class="range">${weekRange(viewedWeek)}</div>
+          </div>
+          <button id="nextWeek" ${viewedWeek>=realCurrent? 'disabled':''}>›</button>
+        </div>
+        <div class="week-stats">
+          <div class="week-stat"><div class="lbl">Pot</div><div class="val">${money(pot)}</div></div>
+          <div class="week-stat"><div class="lbl">${isCurrent ? 'Marked in' : 'Winners'}</div><div class="val">${isCurrent ? (playingCount - pending.length) : winners.length} of ${playingCount}</div></div>
+        </div>
+        ${banner}
+        ${!isCurrent ? `<button id="weekHeroSettingsLink" class="settings-hint"><span aria-hidden="true">⚙️</span><span>Got the wrong result? Fix it in Settings.</span></button>` : ''}
+      </div>
+      <div class="section">
+        <div class="player-list">
+          ${state.players.length>0 ? `
+          <div class="plist-head">
+            <span class="spacer"></span>
+            <span class="col-label">Playing this week?</span>
+            <span class="col-label">10K daily goal met?</span>
+          </div>` : ''}
+          ${cards}
+        </div>
+        ${settingsLinkHtml()}
+      </div>
+    `;
+  }
+
+  function playerCard(name, e, r, canToggle, canMarkResult, isCurrentWeek){
+    // Goal toggle is only interactive while playing AND the Mon/Tue window is open.
+    const goalEnabled = e.playing && canMarkResult;
+    const needsMark = goalEnabled && (e.completed===null || e.completed===undefined);
+
+    const playState = e.playing ? 'Yes' : 'No';
+    let goalState;
+    if(!e.playing) goalState = '—';
+    else if(e.completed===true) goalState = 'Yes';
+    else if(e.completed===false) goalState = 'No';
+    else goalState = needsMark ? 'Not yet' : '—';
+
+    return `
+      <div class="player-row${e.playing ? '' : ' sitting'}" data-player="${escapeAttr(name)}">
+        <div class="prow-main">
+          <div class="prow-name">${escapeHtml(name)}</div>
+          ${e.playing ? '' : '<div class="prow-sub">Sitting out</div>'}
+        </div>
+        <div class="mini-toggles">
+          <div class="mini-toggle">
+            <label class="switch">
+              <input type="checkbox" class="playToggle" ${e.playing?'checked':''} ${canToggle?'':'disabled'}>
+              <span class="slider"></span>
+            </label>
+            <span class="mini-toggle-state${e.playing && isCurrentWeek ?' yes':''}">${playState}</span>
+          </div>
+          <div class="mini-toggle${needsMark ? ' attn':''}">
+            <label class="switch gold${needsMark ? ' attn':''}">
+              <input type="checkbox" class="completeToggle" ${e.completed===true?'checked':''} ${goalEnabled?'':'disabled'}>
+              <span class="slider"></span>
+            </label>
+            <span class="mini-toggle-state${e.completed===true && isCurrentWeek ?' yes':''}">${goalState}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function attachTabHandlers(){
+    if(currentTab==='week'){
+      const prev = document.getElementById('prevWeek');
+      const next = document.getElementById('nextWeek');
+      if(prev) prev.onclick = ()=>{ if(viewedWeek>1){ viewedWeek--; renderTab(); } };
+      if(next) next.onclick = ()=>{ viewedWeek++; renderTab(); };
+
+      document.querySelectorAll('.player-row').forEach(card=>{
+        const name = card.dataset.player;
+        const entries = getWeekEntries(viewedWeek);
+        const toggle1 = card.querySelector('.playToggle');
+        if(toggle1){
+          toggle1.onchange = ()=>{
+            entries[name].playing = toggle1.checked;
+            if(!toggle1.checked){ entries[name].completed = null; }
+            queueSave();
+            pushEntryToSheet(viewedWeek, name);
+            renderTab();
+          };
+        }
+        const toggle2 = card.querySelector('.completeToggle');
+        if(toggle2){
+          toggle2.onchange = ()=>{
+            entries[name].completed = toggle2.checked;
+            queueSave();
+            pushEntryToSheet(viewedWeek, name);
+            renderTab();
+          };
+        }
+      });
+    } else if(currentTab==='leaderboard'){
+      document.querySelectorAll('.seg-control button').forEach(btn=>{
+        btn.onclick = ()=>{ lbSort = btn.dataset.sort; renderTab(); };
+      });
+    }
+    // Settings should be reachable from every tab, not just the gear icon.
+    document.querySelectorAll('.settings-link').forEach(btn=>{ btn.onclick = openSettings; });
+    const weekHeroLink = document.getElementById('weekHeroSettingsLink');
+    if(weekHeroLink) weekHeroLink.onclick = openSettings;
+  }
+
+  function renderLeaderboardTab(){
+    const totals = {};
+    state.players.forEach(p=> totals[p] = { net:0, weeksWon:0, weeksPlayed:0 });
+    Object.keys(state.weeks).forEach(wk=>{
+      const { results } = computeWeekResults(Number(wk));
+      state.players.forEach(p=>{
+        const r = results[p];
+        if(r.status==='pending') return;
+        if(r.status!=='sit'){ totals[p].weeksPlayed++; }
+        if(r.status==='win') totals[p].weeksWon++;
+        totals[p].net += r.net;
+      });
+    });
+
+    const sortOptions = [
+      { id:'money', label:'💰 Money' },
+      { id:'wins', label:'🏆 Weeks won' },
+      { id:'played', label:'🏃 Weeks played' }
+    ];
+    const segControl = `
+      <div class="seg-control">
+        ${sortOptions.map(o=>`<button data-sort="${o.id}" class="${lbSort===o.id?'active':''}">${o.label}</button>`).join('')}
+      </div>
+    `;
+
+    if(state.players.length===0) return `<div class="section"><div class="section-title">Overall standings</div>${segControl}<div class="empty-msg">Add players to see the leaderboard.</div>${settingsLinkHtml()}</div>`;
+
+    const metric = p => lbSort==='wins' ? totals[p].weeksWon : (lbSort==='played' ? totals[p].weeksPlayed : totals[p].net);
+    const ranked = state.players.slice().sort((a,b)=> metric(b) - metric(a));
+
+    let ranks = [];
+    ranked.forEach((p,i)=>{
+      if(i===0){ ranks.push(1); }
+      else if(metric(p) === metric(ranked[i-1])){ ranks.push(ranks[i-1]); }
+      else { ranks.push(i+1); }
+    });
+
+    const rows = ranked.map((p,i)=>{
+      const t = totals[p];
+      const rank = ranks[i];
+      const tieCount = ranks.filter(r=>r===rank).length;
+
+      let primaryEl, subLine;
+      if(lbSort==='wins'){
+        primaryEl = `<span class="money zero">${t.weeksWon} win${t.weeksWon===1?'':'s'}</span>`;
+        subLine = `${t.weeksPlayed} week${t.weeksPlayed===1?'':'s'} played · ${t.net>0?'+':''}${money(t.net)}`;
+      } else if(lbSort==='played'){
+        primaryEl = `<span class="money zero">${t.weeksPlayed} week${t.weeksPlayed===1?'':'s'}</span>`;
+        subLine = `${t.weeksWon} win${t.weeksWon===1?'':'s'} · ${t.net>0?'+':''}${money(t.net)}`;
+      } else {
+        const cls = t.net>0?'pos':(t.net<0?'neg':'zero');
+        primaryEl = `<span class="money ${cls}">${t.net>0?'+':''}${money(t.net)}</span>`;
+        subLine = `${t.weeksWon} win${t.weeksWon===1?'':'s'} · ${t.weeksPlayed} week${t.weeksPlayed===1?'':'s'} played`;
+      }
+      if(tieCount>1) subLine += ' · tied';
+
+      return `
+        <div class="lb-row">
+          <div class="lb-rank ${rank===1 && metric(p)>0 ? 'gold':''}">${rank}</div>
+          <div class="lb-main">
+            <div class="lb-name">${escapeHtml(p)}</div>
+            <div class="lb-sub">${subLine}</div>
+          </div>
+          ${primaryEl}
+        </div>
+      `;
+    }).join('');
+    return `<div class="section"><div class="section-title">Overall standings</div>${segControl}${rows}${settingsLinkHtml()}</div>`;
+  }
+
+  function renderHistoryTab(){
+    const weekNums = Object.keys(state.weeks).map(Number).sort((a,b)=>b-a);
+    if(weekNums.length===0) return `<div class="section"><div class="empty-msg">No weeks recorded yet.</div></div>`;
+    const cards = weekNums.map(wk=>{
+      const { winners, losers, pending, pot, playingCount } = computeWeekResults(wk);
+      let body = '';
+      if(playingCount===0){
+        body = `<div class="hist-empty">Nobody played this week.</div>`;
+      } else {
+        body += winners.length
+          ? `<div class="hist-winners"><b>${winners.map(escapeHtml).join(', ')}</b> hit the goal</div>`
+          : `<div class="hist-winners">No one hit the goal this week</div>`;
+        if(losers.length) body += `<div class="hist-losers">Missed it: ${losers.join(', ')}</div>`;
+        if(pending.length) body += `<div class="hist-losers">Still waiting on: ${pending.join(', ')}</div>`;
+      }
+      return `
+        <div class="hist-card">
+          <div class="hist-top">
+            <div class="hist-week">Week ${wk}</div>
+            <div class="hist-range">${weekRange(wk)}</div>
+          </div>
+          ${body}
+          <div class="hist-pot">Pot ${money(pot)} · ${playingCount} playing</div>
+        </div>
+      `;
+    }).join('');
+    return `<div class="section"><div class="section-title">Past weeks</div>${cards}${settingsLinkHtml()}</div>`;
+  }
+
+  // ---------- settings ----------
+  function openSettings(){
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `
+      <div class="modal">
+        <div class="modal-head">
+          <h2>Settings</h2>
+          <button class="icon-btn" id="closeSettings" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="field">
+          <label>Weekly entry fee (₹)</label>
+          <input type="number" inputmode="numeric" id="buyInInput" value="${state.config.buyIn}">
+        </div>
+
+        <div class="field">
+          <label>Players</label>
+          <div id="playerList"></div>
+          <button class="add-player-btn" id="addPlayerBtn">+ Add family member</button>
+        </div>
+
+        <div class="field">
+          <label>Google Sheet sync</label>
+          <div class="helper">Paste the Web App link from your Google Sheet's Apps Script here to connect. Once connected, ticking a toggle here updates the Sheet, and edits in the Sheet show up here too.</div>
+          <input type="text" id="syncUrlInput" placeholder="https://script.google.com/macros/s/…/exec" value="${escapeAttr(state.syncUrl||'')}">
+          <div id="syncStatus" class="sync-status"></div>
+          <button class="secondary-btn" id="testSyncBtn">Test connection</button>
+        </div>
+
+        <div class="field">
+          <label>Fix a past week's result</label>
+          <div class="field-row">
+            <select id="fixWeekSelect"></select>
+            <select id="fixPlayerSelect"></select>
+          </div>
+          <select id="fixPlayingSelect" style="margin-top:8px;">
+            <option value="yes">Played that week</option>
+            <option value="no">Sat out that week</option>
+          </select>
+          <select id="fixResultSelect" style="margin-top:8px;">
+            <option value="unmarked">Not marked</option>
+            <option value="yes">Hit the goal</option>
+            <option value="no">Missed the goal</option>
+          </select>
+          <button class="primary-btn" id="saveFixBtn">Save correction</button>
+        </div>
+
+        <button class="primary-btn" id="doneSettings">Done</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    function renderPlayerList(){
+      const listEl = overlay.querySelector('#playerList');
+      listEl.innerHTML = state.players.map((p,i)=>`
+        <div class="player-edit-row">
+          <input type="text" data-i="${i}" class="playerNameInput" value="${escapeAttr(p)}">
+          <button class="rm-btn" data-i="${i}">×</button>
+        </div>
+      `).join('');
+      listEl.querySelectorAll('.playerNameInput').forEach(inp=>{
+        inp.onchange = ()=>{
+          const i = Number(inp.dataset.i);
+          const oldName = state.players[i];
+          const newName = inp.value.trim();
+          if(!newName){ inp.value = oldName; return; }
+          if(newName === oldName) return;
+          state.players[i] = newName;
+          Object.values(state.weeks).forEach(wk=>{
+            if(wk[oldName]){ wk[newName] = wk[oldName]; delete wk[oldName]; }
+          });
+          queueSave();
+          fillFixSelectors();
+        };
+      });
+      listEl.querySelectorAll('.rm-btn').forEach(btn=>{
+        btn.onclick = ()=>{
+          const i = Number(btn.dataset.i);
+          state.players.splice(i,1);
+          queueSave();
+          renderPlayerList();
+          fillFixSelectors();
+        };
+      });
+    }
+    renderPlayerList();
+
+    overlay.querySelector('#addPlayerBtn').onclick = ()=>{
+      let n = 1, base = 'New player';
+      let name = base;
+      while(state.players.includes(name)){ n++; name = base + ' ' + n; }
+      state.players.push(name);
+      queueSave();
+      renderPlayerList();
+      fillFixSelectors();
+    };
+    overlay.querySelector('#buyInInput').onchange = (e)=>{
+      const v = Number(e.target.value);
+      if(v>0){ state.config.buyIn = v; queueSave(); }
+    };
+
+    // ---- Google Sheet sync ----
+    const syncStatusEl = overlay.querySelector('#syncStatus');
+    function renderSyncStatus(msg, on){
+      syncStatusEl.textContent = msg;
+      syncStatusEl.className = 'sync-status' + (on ? ' on' : '');
+    }
+    renderSyncStatus(state.syncUrl ? '🔗 Connected to a Google Sheet' : 'Not connected — using this app only', !!state.syncUrl);
+
+    overlay.querySelector('#syncUrlInput').onchange = (e)=>{
+      state.syncUrl = normalizeSyncUrl(e.target.value);
+      queueSave();
+      renderSyncStatus(state.syncUrl ? '🔗 Connected to a Google Sheet' : 'Not connected — using this app only', !!state.syncUrl);
+    };
+    overlay.querySelector('#testSyncBtn').onclick = async ()=>{
+      const url = normalizeSyncUrl(overlay.querySelector('#syncUrlInput').value);
+      if(!url){ showToast('Paste a Web App link first'); return; }
+      state.syncUrl = url;
+      queueSave();
+      renderSyncStatus('Checking…', false);
+      try{
+        await fetchRemoteWeeks(url);
+        renderSyncStatus('✅ Connected! Pulling data now…', true);
+        await syncFromSheet(false);
+        startPolling();
+        showToast('Connected to your Google Sheet');
+      }catch(err){
+        renderSyncStatus('⚠️ Could not connect — double-check the link', false);
+      }
+    };
+
+    // ---- fix a past week's result ----
+    const weekSelect = overlay.querySelector('#fixWeekSelect');
+    const playerSelect = overlay.querySelector('#fixPlayerSelect');
+    const playingSelect = overlay.querySelector('#fixPlayingSelect');
+    const resultSelect = overlay.querySelector('#fixResultSelect');
+
+    function fillFixSelectors(){
+      const weekNums = Object.keys(state.weeks).map(Number).sort((a,b)=>b-a);
+      weekSelect.innerHTML = weekNums.map(w=>`<option value="${w}">Week ${w}</option>`).join('');
+      playerSelect.innerHTML = state.players.map(p=>`<option value="${escapeAttr(p)}">${escapeHtml(p)}</option>`).join('');
+      fillFixValues();
+    }
+    function fillFixValues(){
+      const wk = weekSelect.value;
+      const p = playerSelect.value;
+      const entry = state.weeks[wk] && state.weeks[wk][p];
+      playingSelect.value = (entry && entry.playing) ? 'yes' : 'no';
+      resultSelect.value = (!entry || entry.completed===null || entry.completed===undefined) ? 'unmarked' : (entry.completed ? 'yes':'no');
+    }
+    fillFixSelectors();
+    weekSelect.onchange = fillFixValues;
+    playerSelect.onchange = fillFixValues;
+
+    overlay.querySelector('#saveFixBtn').onclick = ()=>{
+      const wk = weekSelect.value;
+      const p = playerSelect.value;
+      if(!wk || !p) return;
+      if(!state.weeks[wk]) state.weeks[wk] = {};
+      if(!state.weeks[wk][p]) state.weeks[wk][p] = { playing:false, completed:null };
+      state.weeks[wk][p].playing = (playingSelect.value === 'yes');
+      state.weeks[wk][p].completed = resultSelect.value==='unmarked' ? null : (resultSelect.value==='yes');
+      queueSave();
+      pushEntryToSheet(wk, p);
+      showToast(`Updated ${p}'s Week ${wk} result`);
+    };
+
+    function close(){
+      overlay.remove();
+      render();
+    }
+    overlay.querySelector('#closeSettings').onclick = close;
+    overlay.querySelector('#doneSettings').onclick = close;
+  }
+
+  // ---------- icons ----------
+  function gearIcon(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`; }
+  function weekIcon(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`; }
+  function trophyIcon(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3a2 2 0 0 1-2 4M7 5H4a2 2 0 0 0 2 4"/></svg>`; }
+  function historyIcon(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5M12 7v5l4 2"/></svg>`; }
+  function refreshIcon(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16M3 21v-5h5"/></svg>`; }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  function showFatalError(msg){
+    let el = document.getElementById('fatalError');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'fatalError';
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#B24632;color:#fff;padding:10px 14px;font-size:12px;font-family:monospace;z-index:9999;white-space:pre-wrap;';
+      document.body.appendChild(el);
+    }
+    el.textContent = '⚠️ App error: ' + msg;
+  }
+  window.addEventListener('error', function(e){ showFatalError(e.message || String(e)); });
+  window.addEventListener('unhandledrejection', function(e){ showFatalError((e.reason && e.reason.message) ? e.reason.message : String(e.reason)); });
+
+  // ---------- init ----------
+  function resolveSyncUrl(){
+    // Priority: ?sync= in the link > previously saved > baked-in constant.
+    // A link-carried URL wins so re-sharing a fresh link fixes stale phones.
+    try{
+      const qs = new URLSearchParams(location.search);
+      const fromParam = normalizeSyncUrl(qs.get('sync') || '');
+      if(fromParam){ state.syncUrl = fromParam; queueSave(); return; }
+    }catch(e){}
+    if(!state.syncUrl && BAKED_SYNC_URL){ state.syncUrl = normalizeSyncUrl(BAKED_SYNC_URL); queueSave(); }
+  }
+
+  (async function init(){
+    try{
+      state = await loadState();
+      render();
+      resolveSyncUrl();
+      if(state.syncUrl){ await syncFromSheet(false); renderTab(); }
+      startPolling();
+      // Re-sync when the app comes back to the foreground (WhatsApp browser,
+      // phone unlock) so people see the family's latest taps immediately.
+      document.addEventListener('visibilitychange', ()=>{
+        if(document.visibilityState === 'visible' && state && state.syncUrl){ syncFromSheet(false); }
+      });
+    }catch(err){
+      showFatalError(err && err.message ? err.message : String(err));
+      // Fallback: still let the person reach Settings even if something else broke.
+      app.innerHTML = `
+        <div class="topbar">
+          <h1>Family Step Challenge</h1>
+          <button class="icon-btn" id="fallbackSettingsBtn">${gearIcon()}</button>
+        </div>
+        <div class="section"><div class="empty-msg">Something went wrong loading the challenge. Tap the gear icon above to open Settings, or reload the page.</div></div>
+      `;
+      const btn = document.getElementById('fallbackSettingsBtn');
+      if(btn) btn.onclick = ()=>{
+        if(!state) state = defaultState();
+        openSettings();
+      };
+    }
+  })();
+})();
+</script>
+</body>
+</html>
