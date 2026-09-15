@@ -474,15 +474,13 @@ input:checked + .slider:before{transform:translateX(22px);}
 (function(){
   const STORAGE_KEY = 'challenge-data';
   const DEFAULT_PLAYERS = ["Ragini","Nalini","Naintara","Amit","Tia","Shaurya","Rohan","Esha"];
-  const POLL_MS = 25000;
+  const POLL_MS = 10000;
 
-  // ================= PUBLISH CONFIG =================
-  // Paste your Google Apps Script Web App URL between the quotes below
-  // BEFORE uploading this file to your host. Every family member who
-  // opens the link will then be connected to the Sheet automatically —
-  // no setup on their phones.
-  const BAKED_SYNC_URL = "https://script.google.com/macros/s/AKfycbyLXeYvi_ugkkIANMagXbD4ymkhx8lynrnUBdjoO_-MlEd9vz4mATwfv2dfj59XZya34w/exec";
-  // ==================================================
+  // ================= SUPABASE CONFIG =================
+  const SUPABASE_URL = "https://glvkouglffkzlgjnnhil.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdmtvdWdsZmZremxnam5uaGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0Nzk2MDEsImV4cCI6MjEwNTA1NTYwMX0.p9j8HcPUQ3PV5JRzyyl6sDO-Svy6B3sHkWSp0KrmrQw";
+  const SB_HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+  // ===================================================
 
   // Storage shim: inside Claude, window.storage is provided (shared across
   // the family). On a normal web host it doesn't exist, so fall back to
@@ -506,7 +504,6 @@ input:checked + .slider:before{transform:translateX(22px);}
       dataVersion: 4,
       players: DEFAULT_PLAYERS.slice(),
       config: { buyIn: 1000, anchor: "2026-09-01" },
-      syncUrl: "",
       weeks: {
         "1": {
           "Ragini":  { playing:true, completed:false },
@@ -561,7 +558,6 @@ input:checked + .slider:before{transform:translateX(22px);}
       });
     });
     if(parsed.config) delete parsed.config.target;
-    if(parsed.syncUrl === undefined) parsed.syncUrl = "";
     parsed.dataVersion = 4;
     return parsed;
   }
@@ -595,62 +591,44 @@ input:checked + .slider:before{transform:translateX(22px);}
     }, 350);
   }
 
-  // ---------- Google Sheet sync ----------
-  function normalizeSyncUrl(url){
-    return (url||'').trim();
-  }
-
-  async function fetchRemoteWeeks(url){
-    const sep = url.includes('?') ? '&' : '?';
-    const res = await fetch(url + sep + 'action=get&_=' + Date.now());
+  // ---------- Supabase sync ----------
+  async function fetchRemoteWeeks(){
+    const res = await fetch(SUPABASE_URL + '/rest/v1/entries?select=week,player,playing,completed', { headers: SB_HEADERS });
     if(!res.ok) throw new Error('bad status ' + res.status);
-    const data = await res.json();
-    if(!data || !Array.isArray(data.rows)) throw new Error('unexpected response shape');
+    const rows = await res.json();
     const weeks = {};
-    data.rows.forEach(r=>{
+    rows.forEach(r=>{
       const wk = String(r.week);
       if(!weeks[wk]) weeks[wk] = {};
-      weeks[wk][r.player] = {
-        playing: (r.playing === true || r.playing === 'TRUE' || r.playing === 'true'),
-        completed: (r.completed === '' || r.completed === null || r.completed === undefined)
-          ? null
-          : (r.completed === true || r.completed === 'TRUE' || r.completed === 'true')
-      };
+      weeks[wk][r.player] = { playing: !!r.playing, completed: r.completed };
     });
     return weeks;
   }
 
-  async function postRemoteUpdate(url, payload){
+  async function upsertEntry(data){
     try{
-      await fetch(url, {
+      await fetch(SUPABASE_URL + '/rest/v1/entries?on_conflict=week,player', {
         method:'POST',
-        headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // avoids a CORS preflight against Apps Script
-        body: JSON.stringify(payload)
+        headers: Object.assign({}, SB_HEADERS, { 'Prefer':'resolution=merge-duplicates' }),
+        body: JSON.stringify(data)
       });
     }catch(e){
-      showToast("Saved here, but couldn't reach the Google Sheet");
+      showToast("Saved here, but couldn't reach the cloud");
     }
   }
 
-  async function syncFromSheet(announce){
-    if(!state.syncUrl) return;
+  async function syncFromCloud(announce){
     try{
-      const remoteWeeks = await fetchRemoteWeeks(state.syncUrl);
+      const remoteWeeks = await fetchRemoteWeeks();
 
-      // First connect to an empty Sheet: seed it from this phone
-      // instead of wiping the local data.
       if(Object.keys(remoteWeeks).length === 0 && Object.keys(state.weeks).length > 0){
-        await seedSheet();
-        if(announce) showToast('🔗 Connected — copied this phone\'s data into the Sheet');
+        await seedCloud();
+        if(announce) showToast('Synced — uploaded this phone\'s data');
         return;
       }
 
-      // If a toggle was pushed moments ago, this poll may predate it —
-      // skip applying it so we don't undo the tap.
-      if(Date.now() - lastPushAt < 6000 && !announce) return;
+      if(Date.now() - lastPushAt < 4000 && !announce) return;
 
-      // Any player named in the Sheet but missing here gets added,
-      // so adding a family member in the Sheet propagates to phones.
       const remotePlayers = new Set();
       Object.values(remoteWeeks).forEach(wk=> Object.keys(wk).forEach(p=> remotePlayers.add(p)));
       let playersChanged = false;
@@ -662,38 +640,38 @@ input:checked + .slider:before{transform:translateX(22px);}
         queueSave();
         if(currentTab) renderTab();
       }
-      if(announce) showToast('🔗 Synced with your Google Sheet');
+      if(announce) showToast('Synced');
     }catch(e){
-      if(announce) showToast("Couldn't connect — check the link in Settings");
+      if(announce) showToast("Couldn't sync — check your connection");
     }
   }
 
-  async function seedSheet(){
+  async function seedCloud(){
     const entries = [];
     Object.keys(state.weeks).forEach(wk=>{
       Object.keys(state.weeks[wk]).forEach(player=>{
         const e = state.weeks[wk][player];
-        entries.push({ week:Number(wk), player, playing:!!e.playing, completed:(e.completed===undefined?null:e.completed) });
+        entries.push({ week:Number(wk), player, playing:!!e.playing, completed:(e.completed===undefined?null:e.completed), updated_at:new Date().toISOString() });
       });
     });
-    if(entries.length) await postRemoteUpdate(state.syncUrl, { entries });
+    if(entries.length) await upsertEntry(entries);
   }
 
-  function pushEntryToSheet(weekNum, player){
-    if(!state.syncUrl) return;
+  function pushEntry(weekNum, player){
     lastPushAt = Date.now();
     const entry = getWeekEntries(weekNum)[player];
-    postRemoteUpdate(state.syncUrl, {
+    upsertEntry({
       week: Number(weekNum),
       player: player,
       playing: !!entry.playing,
-      completed: entry.completed
+      completed: entry.completed,
+      updated_at: new Date().toISOString()
     });
   }
 
   function startPolling(){
     if(pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(()=>{ if(state.syncUrl) syncFromSheet(false); }, POLL_MS);
+    pollTimer = setInterval(()=> syncFromCloud(false), POLL_MS);
   }
 
   // ---------- date / week helpers ----------
@@ -810,9 +788,8 @@ input:checked + .slider:before{transform:translateX(22px);}
     `;
     document.getElementById('settingsBtn').onclick = openSettings;
     document.getElementById('refreshBtn').onclick = async ()=>{
-      if(!state.syncUrl){ showToast('Add your Google Sheet link in Settings first'); return; }
-      showToast('Checking the Sheet…');
-      await syncFromSheet(true);
+      showToast('Syncing…');
+      await syncFromCloud(true);
     };
     document.querySelectorAll('.tabbar button').forEach(b=>{
       b.onclick = ()=>{ currentTab = b.dataset.tab; render(); };
@@ -957,7 +934,7 @@ input:checked + .slider:before{transform:translateX(22px);}
             entries[name].playing = toggle1.checked;
             if(!toggle1.checked){ entries[name].completed = null; }
             queueSave();
-            pushEntryToSheet(viewedWeek, name);
+            pushEntry(viewedWeek, name);
             renderTab();
           };
         }
@@ -966,7 +943,7 @@ input:checked + .slider:before{transform:translateX(22px);}
           toggle2.onchange = ()=>{
             entries[name].completed = toggle2.checked;
             queueSave();
-            pushEntryToSheet(viewedWeek, name);
+            pushEntry(viewedWeek, name);
             renderTab();
           };
         }
@@ -1106,10 +1083,8 @@ input:checked + .slider:before{transform:translateX(22px);}
         </div>
 
         <div class="field">
-          <label>Google Sheet sync</label>
-          <div class="helper">Paste the Web App link from your Google Sheet's Apps Script here to connect. Once connected, ticking a toggle here updates the Sheet, and edits in the Sheet show up here too.</div>
-          <input type="text" id="syncUrlInput" placeholder="https://script.google.com/macros/s/…/exec" value="${escapeAttr(state.syncUrl||'')}">
-          <div id="syncStatus" class="sync-status"></div>
+          <label>Cloud sync</label>
+          <div id="syncStatus" class="sync-status on">Connected — changes sync across all phones automatically</div>
           <button class="secondary-btn" id="testSyncBtn">Test connection</button>
         </div>
 
@@ -1185,33 +1160,19 @@ input:checked + .slider:before{transform:translateX(22px);}
       if(v>0){ state.config.buyIn = v; queueSave(); }
     };
 
-    // ---- Google Sheet sync ----
+    // ---- Cloud sync ----
     const syncStatusEl = overlay.querySelector('#syncStatus');
-    function renderSyncStatus(msg, on){
-      syncStatusEl.textContent = msg;
-      syncStatusEl.className = 'sync-status' + (on ? ' on' : '');
-    }
-    renderSyncStatus(state.syncUrl ? '🔗 Connected to a Google Sheet' : 'Not connected — using this app only', !!state.syncUrl);
-
-    overlay.querySelector('#syncUrlInput').onchange = (e)=>{
-      state.syncUrl = normalizeSyncUrl(e.target.value);
-      queueSave();
-      renderSyncStatus(state.syncUrl ? '🔗 Connected to a Google Sheet' : 'Not connected — using this app only', !!state.syncUrl);
-    };
     overlay.querySelector('#testSyncBtn').onclick = async ()=>{
-      const url = normalizeSyncUrl(overlay.querySelector('#syncUrlInput').value);
-      if(!url){ showToast('Paste a Web App link first'); return; }
-      state.syncUrl = url;
-      queueSave();
-      renderSyncStatus('Checking…', false);
+      syncStatusEl.textContent = 'Checking…';
+      syncStatusEl.className = 'sync-status';
       try{
-        await fetchRemoteWeeks(url);
-        renderSyncStatus('✅ Connected! Pulling data now…', true);
-        await syncFromSheet(false);
-        startPolling();
-        showToast('Connected to your Google Sheet');
+        await fetchRemoteWeeks();
+        syncStatusEl.textContent = 'Connected — everything is working';
+        syncStatusEl.className = 'sync-status on';
+        showToast('Connection OK');
       }catch(err){
-        renderSyncStatus('⚠️ Could not connect — double-check the link', false);
+        syncStatusEl.textContent = 'Could not connect — check your internet';
+        syncStatusEl.className = 'sync-status';
       }
     };
 
@@ -1247,7 +1208,7 @@ input:checked + .slider:before{transform:translateX(22px);}
       state.weeks[wk][p].playing = (playingSelect.value === 'yes');
       state.weeks[wk][p].completed = resultSelect.value==='unmarked' ? null : (resultSelect.value==='yes');
       queueSave();
-      pushEntryToSheet(wk, p);
+      pushEntry(wk, p);
       showToast(`Updated ${p}'s Week ${wk} result`);
     };
 
@@ -1283,28 +1244,14 @@ input:checked + .slider:before{transform:translateX(22px);}
   window.addEventListener('unhandledrejection', function(e){ showFatalError((e.reason && e.reason.message) ? e.reason.message : String(e.reason)); });
 
   // ---------- init ----------
-  function resolveSyncUrl(){
-    // Priority: ?sync= in the link > previously saved > baked-in constant.
-    // A link-carried URL wins so re-sharing a fresh link fixes stale phones.
-    try{
-      const qs = new URLSearchParams(location.search);
-      const fromParam = normalizeSyncUrl(qs.get('sync') || '');
-      if(fromParam){ state.syncUrl = fromParam; queueSave(); return; }
-    }catch(e){}
-    if(!state.syncUrl && BAKED_SYNC_URL){ state.syncUrl = normalizeSyncUrl(BAKED_SYNC_URL); queueSave(); }
-  }
-
   (async function init(){
     try{
       state = await loadState();
       render();
-      resolveSyncUrl();
-      if(state.syncUrl){ await syncFromSheet(false); renderTab(); }
+      await syncFromCloud(false); renderTab();
       startPolling();
-      // Re-sync when the app comes back to the foreground (WhatsApp browser,
-      // phone unlock) so people see the family's latest taps immediately.
       document.addEventListener('visibilitychange', ()=>{
-        if(document.visibilityState === 'visible' && state && state.syncUrl){ syncFromSheet(false); }
+        if(document.visibilityState === 'visible' && state) syncFromCloud(false);
       });
     }catch(err){
       showFatalError(err && err.message ? err.message : String(err));
