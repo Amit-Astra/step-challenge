@@ -474,6 +474,7 @@ input:checked + .slider:before{transform:translateX(22px);}
 (function(){
   const STORAGE_KEY = 'challenge-data';
   const DEFAULT_PLAYERS = ["Ragini","Nalini","Naintara","Amit","Tia","Esha"];
+  const REMOVED_PLAYERS = new Set(["Shaurya","Rohan"]);
   const POLL_MS = 10000;
 
   // ================= SUPABASE CONFIG =================
@@ -543,20 +544,25 @@ input:checked + .slider:before{transform:translateX(22px);}
   // One-time fix for data saved by earlier versions of this app (which stored
   // step counts). Converts old data into the simple playing/completed model.
   function migrateIfNeeded(parsed){
-    if(parsed.dataVersion >= 4) return parsed;
-    const target = (parsed.config && parsed.config.target) || 10000;
-    Object.values(parsed.weeks || {}).forEach(week=>{
-      Object.values(week).forEach(entry=>{
-        if(entry.steps !== undefined){
-          entry.completed = (entry.steps === null || entry.steps === undefined) ? null : (Number(entry.steps) >= target);
-          delete entry.steps;
-          delete entry.submitted;
-        }
-        if(entry.completed === undefined) entry.completed = null;
+    if(parsed.dataVersion < 4){
+      const target = (parsed.config && parsed.config.target) || 10000;
+      Object.values(parsed.weeks || {}).forEach(week=>{
+        Object.values(week).forEach(entry=>{
+          if(entry.steps !== undefined){
+            entry.completed = (entry.steps === null || entry.steps === undefined) ? null : (Number(entry.steps) >= target);
+            delete entry.steps;
+            delete entry.submitted;
+          }
+          if(entry.completed === undefined) entry.completed = null;
+        });
       });
+      if(parsed.config) delete parsed.config.target;
+      parsed.dataVersion = 4;
+    }
+    parsed.players = (parsed.players || []).filter(p => !REMOVED_PLAYERS.has(p));
+    Object.values(parsed.weeks || {}).forEach(week => {
+      REMOVED_PLAYERS.forEach(p => delete week[p]);
     });
-    if(parsed.config) delete parsed.config.target;
-    parsed.dataVersion = 4;
     return parsed;
   }
 
@@ -628,7 +634,7 @@ input:checked + .slider:before{transform:translateX(22px);}
       if(Date.now() - lastPushAt < 4000 && !announce) return;
 
       const remotePlayers = new Set();
-      Object.values(remoteWeeks).forEach(wk=> Object.keys(wk).forEach(p=> remotePlayers.add(p)));
+      Object.values(remoteWeeks).forEach(wk=> Object.keys(wk).forEach(p=> { if(!REMOVED_PLAYERS.has(p)) remotePlayers.add(p); }));
       let playersChanged = false;
       remotePlayers.forEach(p=>{ if(!state.players.includes(p)){ state.players.push(p); playersChanged = true; } });
 
